@@ -1,3 +1,9 @@
+/*
+Rychlost vetru - pocitat pulzy a jednou za minutu spocitat prumer
+Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
+*/
+
+
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
