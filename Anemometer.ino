@@ -207,7 +207,7 @@ void loop() {
     
     //pocet pulsu
     Serial.println(pulseCount);
-    if (! speed.publish(pulseCount)) {
+    if (! speed.publish((float)pulseCount/((millis() - lastSend) / 1000))) {
 //    if (! speed.publish((float)pulseCount / ((float)(millis() - lastSend) / 1000.f))) {
       //Serial.println("failed");
     } else {
