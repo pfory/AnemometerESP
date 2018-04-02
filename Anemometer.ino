@@ -76,19 +76,19 @@ extern "C" {
   #include "user_interface.h"
 }
 
-float versionSW                   = 0.12;
+float versionSW                   = 0.13;
 String versionSWString            = "Anemometer v";
 byte heartBeat                    = 10;
 
 void setup() {
   Serial.begin(SERIALSPEED);
-  Serial.println();
-  Serial.print(versionSWString);
-  Serial.println(versionSW);
+  DEBUG_PRINTLN();
+  DEBUG_PRINT(versionSWString);
+  DEBUG_PRINTLN(versionSW);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
   
-  Serial.println(ESP.getResetReason());
+  DEBUG_PRINTLN(ESP.getResetReason());
   if (ESP.getResetReason()=="Software/System restart") {
     heartBeat=11;
   } else if (ESP.getResetReason()=="Power on") {
@@ -116,10 +116,10 @@ void setup() {
     delay(5000);
   }
 
-	Serial.println("");
-	Serial.print("Connected to ");
-	Serial.print("IP address: ");
-	Serial.println(WiFi.localIP());
+	DEBUG_PRINTLN("");
+	DEBUG_PRINT("Connected to ");
+	DEBUG_PRINT("IP address: ");
+	DEBUG_PRINTLN(WiFi.localIP());
   
   //v klidu +3V, pulz vstup stahuje k zemi pres pulldown
   pinMode(interruptPin, INPUT_PULLUP);
@@ -181,10 +181,10 @@ void loop() {
       char *pNew = (char *)restart.lastread;
       uint32_t pPassw=atol(pNew); 
       if (pPassw==650419) {
-        Serial.print(F("Restart ESP now!"));
+        DEBUG_PRINT(F("Restart ESP now!"));
         ESP.restart();
       } else {
-        Serial.print(F("Wrong password."));
+        DEBUG_PRINT(F("Wrong password."));
       }
     }
   }
@@ -206,7 +206,7 @@ void loop() {
     }
     
     //pocet pulsu
-    Serial.println(pulseCount);
+    DEBUG_PRINTLN(pulseCount);
     if (! speed.publish((float)pulseCount/((millis() - lastSend) / 1000))) {
 //    if (! speed.publish((float)pulseCount / ((float)(millis() - lastSend) / 1000.f))) {
       //Serial.println("failed");
@@ -223,20 +223,6 @@ void loop() {
     lastSend = millis();
     pulseCount = 0;
   }
-    // if (! pulseLength.publish(pulseWidth)) {
-      // Serial.println("failed");
-    // } else {
-      // Serial.println("OK!");
-    // }
-  
-    // digitalWrite(ledPin, LOW);
-  // ping the server to keep the mqtt connection alive
-  // NOT required if you are publishing once every KEEPALIVE seconds
-  /*
-  if(! mqtt.ping()) {
-    mqtt.disconnect();
-  }
-  */
   ArduinoOTA.handle();
 }
 
@@ -250,12 +236,12 @@ void MQTT_connect() {
     return;
   }
 
-  Serial.print("Connecting to MQTT... ");
+  DEBUG_PRINT("Connecting to MQTT... ");
 
   uint8_t retries = 3;
   while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
-       Serial.println(mqtt.connectErrorString(ret));
-       Serial.println("Retrying MQTT connection in 5 seconds...");
+       DEBUG_PRINTLN(mqtt.connectErrorString(ret));
+       DEBUG_PRINTLN("Retrying MQTT connection in 5 seconds...");
        mqtt.disconnect();
        delay(5000);  // wait 5 seconds
        retries--;
@@ -264,42 +250,12 @@ void MQTT_connect() {
          while (1);
        }
   }
-  Serial.println("MQTT Connected!");
+  DEBUG_PRINTLN("MQTT Connected!");
 }
 
 void pulseCountEvent() {
   digitalWrite(ledPin, LOW);
   pulseCount++;
-  Serial.println(pulseCount);
+  //Serial.println(pulseCount);
   digitalWrite(ledPin, HIGH);
-
-  //status = digitalRead(interruptPin);
-  /*Serial.print("S-");
-  Serial.print(status);
-  Serial.println(lastStatus);
-  //Serial.println(digitalRead(interruptPin));
-  if (lastStatus!=status) {
-    lastStatus = status;
-    Serial.print("Z:");
-    Serial.println(pulseCount++);
-  }
-  */
-  /*
-  //Serial.print("A");
-  //Serial.println(analogRead(interruptPin));
-  if (digitalRead(interruptPin)==HIGH) { //dobezna
-    Serial.println("H");
-    if (millis() - pulseLength > 1) {
-      pulseCount++;
-      Serial.println(pulseCount);
-      Serial.print(":");
-      Serial.println(millis() - pulseLength);
-    }
-    attachInterrupt(digitalPinToInterrupt(interruptPin), pulseCountEvent, FALLING);
-  } else { //nabezna
-    Serial.println("L");
-    pulseLength = millis();
-    attachInterrupt(digitalPinToInterrupt(interruptPin), pulseCountEvent, RISING);
-  } 
-  */
 }
