@@ -169,27 +169,28 @@ void setup() {
 }
 
 void loop() {
-  //Serial.println(analogRead(analogPin));
-  // Ensure the connection to the MQTT server is alive (this will make the first
-  // connection and automatically reconnect when disconnected).  See the MQTT_connect
-  // function definition further below.
-  MQTT_connect();
+  if (millis() - lastSend >= sendDelay) {
+    //Serial.println(analogRead(analogPin));
+    // Ensure the connection to the MQTT server is alive (this will make the first
+    // connection and automatically reconnect when disconnected).  See the MQTT_connect
+    // function definition further below.
+    noInterrupts();
+    MQTT_connect();
 
-  Adafruit_MQTT_Subscribe *subscription;
-  while ((subscription = mqtt.readSubscription(5000))) {
-    if (subscription == &restart) {
-      char *pNew = (char *)restart.lastread;
-      uint32_t pPassw=atol(pNew); 
-      if (pPassw==650419) {
-        DEBUG_PRINT(F("Restart ESP now!"));
-        ESP.restart();
-      } else {
-        DEBUG_PRINT(F("Wrong password."));
+    Adafruit_MQTT_Subscribe *subscription;
+    while ((subscription = mqtt.readSubscription(5000))) {
+      if (subscription == &restart) {
+        char *pNew = (char *)restart.lastread;
+        uint32_t pPassw=atol(pNew); 
+        if (pPassw==650419) {
+          DEBUG_PRINT(F("Restart ESP now!"));
+          ESP.restart();
+        } else {
+          DEBUG_PRINT(F("Wrong password."));
+        }
       }
     }
-  }
 
-  if (millis() - lastSend >= sendDelay) {
   //if (false) {
     if (! verSW.publish(versionSW)) {
       //Serial.println("failed");
@@ -222,6 +223,8 @@ void loop() {
     }
     lastSend = millis();
     pulseCount = 0;
+    
+    interrupts();
   }
   ArduinoOTA.handle();
 }
