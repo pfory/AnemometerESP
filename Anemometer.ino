@@ -59,7 +59,6 @@ Adafruit_MQTT_Publish hb                  = Adafruit_MQTT_Publish(&mqtt, "/home/
 Adafruit_MQTT_Publish speed               = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Rychlost");
 Adafruit_MQTT_Publish vector              = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Smer");
 
-//Adafruit_MQTT_Subscribe setupPulse    = Adafruit_MQTT_Subscribe(&mqtt, "/home/Anemometer/esp11/setupPulse");
 Adafruit_MQTT_Subscribe restart       = Adafruit_MQTT_Subscribe(&mqtt, "/home/Anemometer/esp11/restart");
 
 IPAddress _ip           = IPAddress(192, 168, 1, 106);
@@ -193,14 +192,14 @@ void loop() {
 
   //if (false) {
     if (! verSW.publish(versionSW)) {
-      //Serial.println("failed");
+      DEBUG_PRINT(F("Send verSW failed!"));
     } else {
-      //Serial.println("OK!");
+      DEBUG_PRINT(F("Send verSW OK!"));
     }
     if (! hb.publish(heartBeat++)) {
-      //Serial.println("failed");
+      DEBUG_PRINT(F("Send hb failed!"));
     } else {
-      //Serial.println("OK!");
+      DEBUG_PRINT(F("Send hb OK!"));
     }
     if (heartBeat>1) {
       heartBeat = 0;
@@ -209,17 +208,16 @@ void loop() {
     //pocet pulsu
     DEBUG_PRINTLN(pulseCount);
     if (! speed.publish((float)pulseCount/((millis() - lastSend) / 1000))) {
-//    if (! speed.publish((float)pulseCount / ((float)(millis() - lastSend) / 1000.f))) {
-      //Serial.println("failed");
+      DEBUG_PRINT(F("Send pulseCount failed!"));
     } else {
-      //Serial.println("OK!");
+      DEBUG_PRINT(F("Send pulseCount OK!"));
     }
     
     //smer vetru
     if (! vector.publish(analogRead(analogPin))) {
-      //Serial.println("failed");
+      DEBUG_PRINT(F("Send vector failed!"));
     } else {
-      //Serial.println("OK!");
+      DEBUG_PRINT(F("Send vector OK!"));
     }
     lastSend = millis();
     pulseCount = 0;
@@ -259,6 +257,5 @@ void MQTT_connect() {
 void pulseCountEvent() {
   digitalWrite(ledPin, LOW);
   pulseCount++;
-  //Serial.println(pulseCount);
   digitalWrite(ledPin, HIGH);
 }
