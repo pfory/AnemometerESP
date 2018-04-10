@@ -15,7 +15,7 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 #include <WiFiManager.h> 
   
   
-#define verbose
+//#define verbose
 #ifdef verbose
  #define DEBUG_PRINT(x)         Serial.print (x)
  #define DEBUG_PRINTDEC(x)      Serial.print (x, DEC)
@@ -67,8 +67,6 @@ IPAddress _gw           = IPAddress(192, 168, 1, 1);
 IPAddress _sn           = IPAddress(255, 255, 255, 0);
 
 
-#define SERIALSPEED 115200
-
 void MQTT_connect(void);
 WiFiManager wifiManager;
 
@@ -81,7 +79,9 @@ String versionSWString            = "Anemometer v";
 byte heartBeat                    = 10;
 
 void setup() {
-  Serial.begin(SERIALSPEED);
+#ifdef verbose
+  Serial.begin(PORTSPEED);
+#endif
   DEBUG_PRINTLN();
   DEBUG_PRINT(versionSWString);
   DEBUG_PRINTLN(versionSW);
