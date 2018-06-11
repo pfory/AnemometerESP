@@ -73,7 +73,7 @@ extern "C" {
   #include "user_interface.h"
 }
 
-float versionSW                   = 0.14;
+float versionSW                   = 0.15;
 String versionSWString            = "Anemometer v";
 byte heartBeat                    = 10;
 
