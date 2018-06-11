@@ -108,7 +108,7 @@ void setup() {
   //Serial.println(ESP.getCpuFreqMHz);
   //WiFi.begin(ssid, password);
   wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
-  if (!wifiManager.autoConnect("AutoConnectAP", "password")) {
+  if (!wifiManager.autoConnect("Anemometer", "password")) {
     DEBUG_PRINTLN("failed to connect, we should reset as see if it connects");
     delay(3000);
     ESP.reset();
