@@ -48,6 +48,8 @@ const byte ledPin       = D4;
 unsigned long sendDelay = 5000;
 unsigned long lastSend  = sendDelay * -1;
 
+unsigned long milisLastRunMinOld          = 0;
+
 bool lastStatus;
 bool status;
 
@@ -73,9 +75,9 @@ extern "C" {
   #include "user_interface.h"
 }
 
-float versionSW                   = 0.15;
+float versionSW                   = 0.16;
 String versionSWString            = "Anemometer v";
-byte heartBeat                    = 10;
+uint32_t heartBeat                = 0;
 
 void setup() {
 #ifdef verbose
@@ -89,19 +91,19 @@ void setup() {
   
   DEBUG_PRINTLN(ESP.getResetReason());
   if (ESP.getResetReason()=="Software/System restart") {
-    heartBeat=11;
+    heartBeat=1;
   } else if (ESP.getResetReason()=="Power on") {
-    heartBeat=12;
+    heartBeat=2;
   } else if (ESP.getResetReason()=="External System") {
-    heartBeat=13;
+    heartBeat=3;
   } else if (ESP.getResetReason()=="Hardware Watchdog") {
-    heartBeat=14;
+    heartBeat=4;
   } else if (ESP.getResetReason()=="Exception") {
-    heartBeat=15;
+    heartBeat=5;
   } else if (ESP.getResetReason()=="Software Watchdog") {
-    heartBeat=16;
+    heartBeat=6;
   } else if (ESP.getResetReason()=="Deep-Sleep Wake") {
-    heartBeat=17;
+    heartBeat=7;
   }
   
   //Serial.println(ESP.getFlashChipRealSize);
@@ -191,20 +193,7 @@ void loop() {
     }
 
   //if (false) {
-    if (! verSW.publish(versionSW)) {
-      DEBUG_PRINT(F("Send verSW failed!"));
-    } else {
-      DEBUG_PRINT(F("Send verSW OK!"));
-    }
-    if (! hb.publish(heartBeat++)) {
-      DEBUG_PRINT(F("Send hb failed!"));
-    } else {
-      DEBUG_PRINT(F("Send hb OK!"));
-    }
-    if (heartBeat>1) {
-      heartBeat = 0;
-    }
-    
+  
     //pocet pulsu
     DEBUG_PRINTLN(pulseCount);
     if (! speed.publish((float)pulseCount/((millis() - lastSend) / 1000))) {
@@ -224,6 +213,22 @@ void loop() {
     
     interrupts();
   }
+  
+  if (millis() - milisLastRunMinOld > 60000) {
+    milisLastRunMinOld = millis();
+    if (! hb.publish(heartBeat)) {
+      DEBUG_PRINTLN("Send HB failed");
+    } else {
+      DEBUG_PRINTLN("Send HB OK!");
+    }
+    heartBeat++;
+    if (! verSW.publish(versionSW)) {
+      DEBUG_PRINT(F("Send verSW failed!"));
+    } else {
+      DEBUG_PRINT(F("Send verSW OK!"));
+    }
+  }
+  
   ArduinoOTA.handle();
 }
 
