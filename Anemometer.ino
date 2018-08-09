@@ -43,7 +43,7 @@ WiFiClient client;
 
 const byte interruptPin = D2;
 const byte analogPin    = A0;
-const byte ledPin       = D4;
+//const byte ledPin       = D4;
 
 unsigned long sendDelay = 5000;
 unsigned long lastSend  = sendDelay * -1;
@@ -86,8 +86,8 @@ void setup() {
   DEBUG_PRINTLN();
   DEBUG_PRINT(versionSWString);
   DEBUG_PRINTLN(versionSW);
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
   
   DEBUG_PRINTLN(ESP.getResetReason());
   if (ESP.getResetReason()=="Software/System restart") {
@@ -166,7 +166,7 @@ void setup() {
     else if (error == OTA_END_ERROR) DEBUG_PRINTLN("End Failed");
   });
   ArduinoOTA.begin();
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
@@ -260,7 +260,7 @@ void MQTT_connect() {
 }
 
 void pulseCountEvent() {
-  digitalWrite(ledPin, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   pulseCount++;
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
