@@ -13,6 +13,17 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 //#include <FS.h>
 #include <ArduinoOTA.h>
 #include <WiFiManager.h> 
+
+//for LED status
+#include <Ticker.h>
+Ticker ticker;
+
+void tick()
+{
+  //toggle state
+  int state = digitalRead(BUILTIN_LED);  // get the current state of GPIO1 pin
+  digitalWrite(BUILTIN_LED, !state);     // set pin to the opposite state
+}
   
   
 //#define verbose
@@ -75,7 +86,17 @@ extern "C" {
   #include "user_interface.h"
 }
 
-float versionSW                   = 0.16;
+//gets called when WiFiManager enters configuration mode
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+  //entered config mode, make led toggle faster
+  ticker.attach(0.2, tick);
+}
+
+float versionSW                   = 0.17;
 String versionSWString            = "Anemometer v";
 uint32_t heartBeat                = 0;
 
@@ -86,8 +107,10 @@ void setup() {
   DEBUG_PRINTLN();
   DEBUG_PRINT(versionSWString);
   DEBUG_PRINTLN(versionSW);
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  //set led pin as output
+  pinMode(BUILTIN_LED, OUTPUT);
+  // start ticker with 0.5 because we start in AP mode and try to connect
+  ticker.attach(0.6, tick);
   
   DEBUG_PRINTLN(ESP.getResetReason());
   if (ESP.getResetReason()=="Software/System restart") {
@@ -105,11 +128,21 @@ void setup() {
   } else if (ESP.getResetReason()=="Deep-Sleep Wake") {
     heartBeat=7;
   }
+
+  //WiFiManager
+  //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
+  //reset settings - for testing
+  //wifiManager.resetSettings();
+
+  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  wifiManager.setAPCallback(configModeCallback);
   
   //Serial.println(ESP.getFlashChipRealSize);
   //Serial.println(ESP.getCpuFreqMHz);
   //WiFi.begin(ssid, password);
   wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
+  
   if (!wifiManager.autoConnect("Anemometer", "password")) {
     DEBUG_PRINTLN("failed to connect, we should reset as see if it connects");
     delay(3000);
@@ -166,7 +199,10 @@ void setup() {
     else if (error == OTA_END_ERROR) DEBUG_PRINTLN("End Failed");
   });
   ArduinoOTA.begin();
-  digitalWrite(LED_BUILTIN, HIGH);
+
+  ticker.detach();
+  //keep LED on
+  digitalWrite(BUILTIN_LED, LOW);
 }
 
 void loop() {
@@ -260,7 +296,7 @@ void MQTT_connect() {
 }
 
 void pulseCountEvent() {
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(BUILTIN_LED, LOW);
   pulseCount++;
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(BUILTIN_LED, HIGH);
 }
