@@ -80,7 +80,6 @@ IPAddress _sn           = IPAddress(255, 255, 255, 0);
 
 
 void MQTT_connect(void);
-WiFiManager wifiManager;
 
 extern "C" {
   #include "user_interface.h"
