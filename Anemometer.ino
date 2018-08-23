@@ -61,8 +61,6 @@ unsigned long lastSend  = sendDelay * -1;
 
 unsigned long milisLastRunMinOld          = 0;
 
-bool lastStatus;
-bool status;
 
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
@@ -74,9 +72,9 @@ Adafruit_MQTT_Publish vector              = Adafruit_MQTT_Publish(&mqtt, "/home/
 
 Adafruit_MQTT_Subscribe restart       = Adafruit_MQTT_Subscribe(&mqtt, "/home/Anemometer/esp11/restart");
 
-IPAddress _ip           = IPAddress(192, 168, 1, 106);
-IPAddress _gw           = IPAddress(192, 168, 1, 1);
-IPAddress _sn           = IPAddress(255, 255, 255, 0);
+  IPAddress _ip           = IPAddress(192, 168, 1, 106);
+  IPAddress _gw           = IPAddress(192, 168, 1, 1);
+  IPAddress _sn           = IPAddress(255, 255, 255, 0);
 
 
 void MQTT_connect(void);
