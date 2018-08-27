@@ -72,9 +72,9 @@ Adafruit_MQTT_Publish vector              = Adafruit_MQTT_Publish(&mqtt, "/home/
 
 Adafruit_MQTT_Subscribe restart       = Adafruit_MQTT_Subscribe(&mqtt, "/home/Anemometer/esp11/restart");
 
-  IPAddress _ip           = IPAddress(192, 168, 1, 106);
-  IPAddress _gw           = IPAddress(192, 168, 1, 1);
-  IPAddress _sn           = IPAddress(255, 255, 255, 0);
+IPAddress _ip           = IPAddress(192, 168, 1, 106);
+IPAddress _gw           = IPAddress(192, 168, 1, 1);
+IPAddress _sn           = IPAddress(255, 255, 255, 0);
 
 
 void MQTT_connect(void);
@@ -93,7 +93,7 @@ void configModeCallback (WiFiManager *myWiFiManager) {
   ticker.attach(0.2, tick);
 }
 
-float versionSW                   = 0.17;
+float versionSW                   = 0.18;
 String versionSWString            = "Anemometer v";
 uint32_t heartBeat                = 0;
 
@@ -131,6 +131,7 @@ void setup() {
   WiFiManager wifiManager;
   //reset settings - for testing
   //wifiManager.resetSettings();
+  wifiManager.setConnectTimeout(600); //5min
 
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
