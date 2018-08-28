@@ -1,8 +1,10 @@
+//ANEMOMETER
 /*
 Rychlost vetru - pocitat pulzy a jednou za minutu spocitat prumer
 Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 8 pulzu na otacku
 */
+//Wemos D1 R2 & mini
 
 
 #include <ESP8266WiFi.h>
@@ -26,7 +28,7 @@ void tick()
 }
   
   
-//#define verbose
+#define verbose
 #ifdef verbose
  #define DEBUG_PRINT(x)         Serial.print (x)
  #define DEBUG_PRINTDEC(x)      Serial.print (x, DEC)
@@ -200,7 +202,7 @@ void setup() {
 
   ticker.detach();
   //keep LED on
-  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(BUILTIN_LED, HIGH);
 }
 
 void loop() {
@@ -231,16 +233,16 @@ void loop() {
     //pocet pulsu
     DEBUG_PRINTLN(pulseCount);
     if (! speed.publish((float)pulseCount/((millis() - lastSend) / 1000))) {
-      DEBUG_PRINT(F("Send pulseCount failed!"));
+      DEBUG_PRINTLN(F("Send pulseCount failed!"));
     } else {
-      DEBUG_PRINT(F("Send pulseCount OK!"));
+      DEBUG_PRINTLN(F("Send pulseCount OK!"));
     }
     
     //smer vetru
     if (! vector.publish(analogRead(analogPin))) {
-      DEBUG_PRINT(F("Send vector failed!"));
+      DEBUG_PRINTLN(F("Send vector failed!"));
     } else {
-      DEBUG_PRINT(F("Send vector OK!"));
+      DEBUG_PRINTLN(F("Send vector OK!"));
     }
     lastSend = millis();
     pulseCount = 0;
