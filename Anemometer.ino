@@ -71,7 +71,7 @@ Adafruit_MQTT_Publish verSW               = Adafruit_MQTT_Publish(&mqtt, "/home/
 Adafruit_MQTT_Publish hb                  = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/HeartBeat");
 Adafruit_MQTT_Publish speed               = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Rychlost");
 Adafruit_MQTT_Publish vector              = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Smer");
-Adafruit_MQTT_Publish napeti              = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Napeti");
+//Adafruit_MQTT_Publish napeti              = Adafruit_MQTT_Publish(&mqtt, "/home/Anemometer/esp11/Napeti");
 
 Adafruit_MQTT_Subscribe restart       = Adafruit_MQTT_Subscribe(&mqtt, "/home/Anemometer/esp11/restart");
 
@@ -96,9 +96,9 @@ void configModeCallback (WiFiManager *myWiFiManager) {
   ticker.attach(0.2, tick);
 }
 
-ADC_MODE(ADC_VCC);
+//ADC_MODE(ADC_VCC);
 
-float versionSW                   = 0.19;
+float versionSW                   = 0.20;
 String versionSWString            = "Anemometer v";
 uint32_t heartBeat                = 0;
 
@@ -266,11 +266,11 @@ void loop() {
     } else {
       DEBUG_PRINT(F("Send verSW OK!"));
     }
-    if (! napeti.publish(ESP.getVcc())) {
-      DEBUG_PRINT(F("Send napeti failed!"));
-    } else {
-      DEBUG_PRINT(F("Send napeti OK!"));
-    }
+    // if (! napeti.publish(ESP.getVcc())) {
+      // DEBUG_PRINT(F("Send napeti failed!"));
+    // } else {
+      // DEBUG_PRINT(F("Send napeti OK!"));
+    // }
   }
   
   ArduinoOTA.handle();
