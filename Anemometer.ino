@@ -21,7 +21,7 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 #define HOSTNAMEOTA   "anemometer"
 #endif
 
-#define serverHTTP
+//#define serverHTTP
 #ifdef serverHTTP
 #include <ESP8266WebServer.h>
 ESP8266WebServer server(80);
