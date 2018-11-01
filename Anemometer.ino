@@ -21,6 +21,11 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 #define HOSTNAMEOTA   "anemometer"
 #endif
 
+
+#define AUTOCONNECTNAME   HOSTNAMEOTA
+#define AUTOCONNECTPWD    "password"
+
+
 //#define serverHTTP
 #ifdef serverHTTP
 #include <ESP8266WebServer.h>
@@ -259,7 +264,7 @@ void setup() {
   //if it does not connect it starts an access point with the specified name
   //here  "AutoConnectAP"
   //and goes into a blocking loop awaiting configuration
-  if (!wifiManager.autoConnect("Anemometer", "password")) { 
+  if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
     DEBUG_PRINTLN("failed to connect and hit timeout");
     delay(3000);
     //reset and try again, or maybe put it to deep sleep
