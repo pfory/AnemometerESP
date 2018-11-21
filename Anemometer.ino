@@ -83,11 +83,13 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 const unsigned long   sendDelay             = 5000; //in ms
 const unsigned long   sendStatDelay         = 60000;
 
-unsigned int volatile pulseCount     = 0;
+unsigned int volatile pulseCount            = 0;
+unsigned int pulseCountLast                 = 0;
 unsigned long lastSend                      = 0;
 
+#define PULSECOUNTDIF                       40 //10m/s
     
-float versionSW                             = 0.3;
+float versionSW                             = 0.4;
 char versionSWString[]                      = "Anemometer v"; //SW name & version
 uint32_t heartBeat                          = 0;
 
@@ -528,11 +530,14 @@ bool sendDataHA(void *) {
   
 //Adafruit_MQTT_Subscribe restart                = Adafruit_MQTT_Subscribe(&mqtt, MQTTBASE "restart");
   SenderClass sender;
-  sender.add("Rychlost", (float)pulseCount/((millis() - lastSend) / 1000));
+  if (abs(pulseCount - pulseCountLast) < PULSECOUNTDIF) {
+    sender.add("Rychlost", (float)pulseCount/((millis() - lastSend) / 1000));
+  }
   sender.add("Smer", analogRead(analogPin));
   DEBUG_PRINTLN(F("Calling MQTT"));
 
   sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
+  pulseCountLast = pulseCount;
   pulseCount = 0;
   lastSend = millis();
   digitalWrite(BUILTIN_LED, HIGH);
