@@ -89,7 +89,7 @@ unsigned long lastSend                      = 0;
 
 #define PULSECOUNTDIF                       40 //10m/s
     
-float versionSW                             = 0.4;
+float versionSW                             = 0.41;
 char versionSWString[]                      = "Anemometer v"; //SW name & version
 uint32_t heartBeat                          = 0;
 
@@ -523,14 +523,15 @@ bool sendDataHA(void *) {
   
 //Adafruit_MQTT_Subscribe restart                = Adafruit_MQTT_Subscribe(&mqtt, MQTTBASE "restart");
   SenderClass sender;
-  if (abs(pulseCount - pulseCountLast) < PULSECOUNTDIF) {
-    sender.add("Rychlost", (float)pulseCount/((millis() - lastSend) / 1000));
+  float pc = (float)pulseCount/((millis() - lastSend) / 1000);
+  if (abs(pc - pulseCountLast) < PULSECOUNTDIF) {
+    sender.add("Rychlost", pc);
   }
   sender.add("Smer", analogRead(analogPin));
   DEBUG_PRINTLN(F("Calling MQTT"));
 
   sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
-  pulseCountLast = pulseCount;
+  pulseCountLast = pc;
   pulseCount = 0;
   lastSend = millis();
   digitalWrite(BUILTIN_LED, HIGH);
