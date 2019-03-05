@@ -89,7 +89,7 @@ unsigned long lastSend                      = 0;
 
 #define PULSECOUNTDIF                       40 //10m/s
     
-float versionSW                             = 0.41;
+float versionSW                             = 0.42;
 char versionSWString[]                      = "Anemometer v"; //SW name & version
 uint32_t heartBeat                          = 0;
 
