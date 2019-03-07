@@ -4,7 +4,7 @@ Rychlost vetru - pocitat pulzy a jednou za minutu spocitat prumer
 Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 8 pulzu na otacku
 */
-//Wemos D1 R2 & mini
+//Wemos D1 R2 & mini !!!!!!!SPIFSS 1M !!!!!!!!!!!!!!!!!!
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
