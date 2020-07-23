@@ -182,8 +182,6 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  WiFi.printDiag(Serial);
-    
   WiFiManager wifiManager;
   //reset settings - for testing
   //wifiManager.resetSettings();
