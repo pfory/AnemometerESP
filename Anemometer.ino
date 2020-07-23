@@ -30,12 +30,6 @@ unsigned int          localPort             = 8888;  // local port to listen for
 time_t getNtpTime();
 #endif
 
-
-#define DRD_TIMEOUT       1
-// RTC Memory Address for the DoubleResetDetector to use
-#define DRD_ADDRESS       0
-DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
-
 unsigned int volatile pulseCount            = 0;
 unsigned int pulseCountLast                 = 0;
 unsigned long lastSend                      = 0;
@@ -159,7 +153,6 @@ void setup() {
   
   pinMode(STATUS_LED, OUTPUT);
   ticker.attach(1, tick);
-  bool _dblreset = drd.detectDoubleReset();
     
   WiFi.printDiag(Serial);
     
