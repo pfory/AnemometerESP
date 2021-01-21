@@ -27,6 +27,17 @@
 #define HOSTNAMEOTA   SW_NAME VERSION
 #endif
 
+#ifdef serverHTTP
+#include <ESP8266WebServer.h>
+#endif
+
+#ifdef time
+#include <TimeLib.h>
+#include <Timezone.h>
+#endif
+
+#define CFGFILE "/config.json"
+
 
 #ifdef serverHTTP
 #include <ESP8266WebServer.h>
@@ -45,7 +56,6 @@ Version history:
 HW
 ESP8266 Wemos D1
 */
-
 
 #define verbose
 #ifdef verbose
@@ -95,7 +105,4 @@ static const char* const      mqtt_topic_restart             = "restart";
 #define SEND_DELAY                          5000  //prodleva mezi poslanim dat v ms
 #define SENDSTAT_DELAY                      60000 //poslani statistiky kazdou minutu
 
-#define CFGFILE "/config.json"
-
-                                     
 #endif
