@@ -11,14 +11,11 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 
 //#define serverHTTP
 #ifdef serverHTTP
-#include <ESP8266WebServer.h>
 ESP8266WebServer server(80);
 #endif
 
 //#define time
 #ifdef time
-#include <TimeLib.h>
-#include <Timezone.h>
 WiFiUDP EthernetUdp;
 static const char     ntpServerName[]       = "tik.cesnet.cz";
 //const int timeZone = 2;     // Central European Time
@@ -30,10 +27,6 @@ unsigned int          localPort             = 8888;  // local port to listen for
 time_t getNtpTime();
 #endif
 
-
-#define DRD_TIMEOUT       1
-// RTC Memory Address for the DoubleResetDetector to use
-#define DRD_ADDRESS       0
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 unsigned int volatile pulseCount            = 0;
@@ -43,7 +36,6 @@ unsigned long lastSend                      = 0;
 uint32_t heartBeat                          = 0;
 
 //for LED status
-#include <Ticker.h>
 Ticker ticker;
 
 bool isDebugEnabled()
@@ -54,7 +46,6 @@ bool isDebugEnabled()
   return false;
 }
 
-#include <timer.h>
 auto timer = timer_create_default(); // create a timer with default settings
 Timer<> default_timer; // save as above
 
@@ -148,6 +139,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+void ICACHE_RAM_ATTR pulseCountEvent();
+
+WiFiManager wifiManager;
 
 
 void setup() {
@@ -157,12 +151,26 @@ void setup() {
   DEBUG_PRINT(F(" "));
   DEBUG_PRINTLN(F(VERSION));
   
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+  ticker.attach(1, tick);
+
+  if (drd.detectDoubleReset()) {
+    drd.stop();
+    DEBUG_PRINTLN("Double reset detected, starting config portal...");
+    ticker.attach(0.2, tick);
+
+    if (!wifiManager.startConfigPortal(HOSTNAMEOTA)) {
+      DEBUG_PRINTLN("failed to connect and hit timeout");
+      delay(3000);
+      //reset and try again, or maybe put it to deep sleep
+      ESP.reset();
+      delay(5000);
+    }
+  }
+  
   pinMode(STATUS_LED, OUTPUT);
   ticker.attach(1, tick);
-  bool _dblreset = drd.detectDoubleReset();
-    
-  WiFi.printDiag(Serial);
-    
+   
  
   rst_info *_reset_info = ESP.getResetInfoPtr();
   uint8_t _reset_reason = _reset_info->reason;
@@ -179,27 +187,17 @@ void setup() {
  REASON_EXT_SYS_RST             = 6      external system reset 
   */
 
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
+  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT);
+  wifiManager.setConnectTimeout(CONNECT_TIMEOUT);
 
-  WiFi.printDiag(Serial);
-    
-  WiFiManager wifiManager;
-  //reset settings - for testing
-  //wifiManager.resetSettings();
-  
   IPAddress _ip,_gw,_sn;
   _ip.fromString(static_ip);
   _gw.fromString(static_gw);
   _sn.fromString(static_sn);
 
   wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
-  
-  DEBUG_PRINTLN(_ip);
-  DEBUG_PRINTLN(_gw);
-  DEBUG_PRINTLN(_sn);
-
-  wifiManager.setAPCallback(configModeCallback);
   
   if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
     DEBUG_PRINTLN("failed to connect and hit timeout");
@@ -208,6 +206,10 @@ void setup() {
     ESP.reset();
     delay(5000);
   } 
+
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+  
 #ifdef serverHTTP
   server.on ( "/", handleRoot );
   server.begin();
@@ -254,17 +256,19 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(interruptPin), pulseCountEvent, RISING);
 
   //setup timers
-  timer.every(SEND_DELAY, sendDataHA);
-  timer.every(SENDSTAT_DELAY, sendStatisticHA);
+  timer.every(SEND_DELAY, sendDataMQTT);
+  timer.every(SENDSTAT_DELAY, sendStatisticMQTT);
 
   void * a;
-  sendStatisticHA(a);
+  sendStatisticMQTT(a);
   
-  DEBUG_PRINTLN(" Ready");
- 
   ticker.detach();
   //keep LED on
   digitalWrite(BUILTIN_LED, HIGH);
+  
+  drd.stop();
+
+  DEBUG_PRINTLN(F("Setup end."));
 }
 
 
@@ -279,18 +283,18 @@ void loop() {
   ArduinoOTA.handle();
 #endif
 
-  if (!client.connected()) {
-    reconnect();
-  }
+  reconnect();
   client.loop();
+
+  drd.loop();
 }
 
 
 
-bool sendDataHA(void *) {
-  noInterrupts();
+bool sendDataMQTT(void *) {
+  //noInterrupts();
   digitalWrite(BUILTIN_LED, LOW);
-  DEBUG_PRINTLN(F(" - I am sending data to HA"));
+  DEBUG_PRINTLN(F(" - I am sending data to MQTT"));
   
   SenderClass sender;
   float pc = (float)pulseCount/((millis() - lastSend) / 1000);
@@ -305,15 +309,15 @@ bool sendDataHA(void *) {
   pulseCount = 0;
   lastSend = millis();
   digitalWrite(BUILTIN_LED, HIGH);
-  interrupts();
+  //interrupts();
   return true;
 }
 
-bool sendStatisticHA(void *) {
-  noInterrupts();
+bool sendStatisticMQTT(void *) {
+  //noInterrupts();
   digitalWrite(BUILTIN_LED, LOW);
   printSystemTime();
-  DEBUG_PRINTLN(F(" - I am sending statistic to HA"));
+  DEBUG_PRINTLN(F(" - I am sending statistic to MQTT"));
 
   SenderClass sender;
   sender.add("VersionSW", VERSION);
@@ -324,7 +328,7 @@ bool sendStatisticHA(void *) {
   
   sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
   digitalWrite(BUILTIN_LED, HIGH);
-  interrupts();
+  //interrupts();
   return true;
 }
 
