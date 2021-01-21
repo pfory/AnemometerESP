@@ -154,6 +154,12 @@ void setup() {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   ticker.attach(1, tick);
 
+  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT);
+  wifiManager.setConnectTimeout(CONNECT_TIMEOUT);
+
+
   if (drd.detectDoubleReset()) {
     drd.stop();
     DEBUG_PRINTLN("Double reset detected, starting config portal...");
@@ -187,18 +193,9 @@ void setup() {
  REASON_EXT_SYS_RST             = 6      external system reset 
   */
 
-  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
-  wifiManager.setAPCallback(configModeCallback);
-  wifiManager.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT);
-  wifiManager.setConnectTimeout(CONNECT_TIMEOUT);
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
 
-  IPAddress _ip,_gw,_sn;
-  _ip.fromString(static_ip);
-  _gw.fromString(static_gw);
-  _sn.fromString(static_sn);
-
-  wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
-  
   if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
     DEBUG_PRINTLN("failed to connect and hit timeout");
     delay(3000);
@@ -206,9 +203,9 @@ void setup() {
     ESP.reset();
     delay(5000);
   } 
+  
+  sendNetInfoMQTT();
 
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
   
 #ifdef serverHTTP
   server.on ( "/", handleRoot );
@@ -441,20 +438,37 @@ void pulseCountEvent() {
   digitalWrite(BUILTIN_LED, HIGH);
 }
 
+
+void sendNetInfoMQTT() {
+  digitalWrite(BUILTIN_LED, LOW);
+  //printSystemTime();
+  DEBUG_PRINTLN(F("Net info"));
+
+  SenderClass sender;
+  sender.add("IP",              WiFi.localIP().toString().c_str());
+  sender.add("MAC",             WiFi.macAddress());
+  
+  DEBUG_PRINTLN(F("Calling MQTT"));
+  
+  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
+  digitalWrite(BUILTIN_LED, HIGH);
+  return;
+}
+
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
-    DEBUG_PRINT("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
-      DEBUG_PRINTLN("connected");
-      client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str());
-    } else {
-      DEBUG_PRINT("failed, rc=");
-      DEBUG_PRINT(client.state());
-      DEBUG_PRINTLN(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+  if (!client.connected()) {
+    if (lastConnectAttempt == 0 || lastConnectAttempt + connectDelay < millis()) {
+      DEBUG_PRINT("Attempting MQTT connection...");
+      // Attempt to connect
+      if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
+        DEBUG_PRINTLN("connected");
+        client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str());
+      } else {
+        lastConnectAttempt = millis();
+        DEBUG_PRINT("failed, rc=");
+        DEBUG_PRINTLN(client.state());
+      }
     }
   }
 }
