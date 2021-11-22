@@ -13,7 +13,7 @@
 
 
 //SW name & version
-#define     VERSION                      "0.50"
+#define     VERSION                      "0.60"
 #define     SW_NAME                      "Anemometer"
 
 //#define timers
@@ -26,7 +26,7 @@
 #define ota
 #ifdef ota
 #include <ArduinoOTA.h>
-#define HOSTNAMEOTA   "anemometer"
+#define HOSTNAMEOTA         SW_NAME VERSION
 #endif
 
 #ifdef serverHTTP
@@ -95,6 +95,8 @@ static const char* const      mqtt_topic_restart             = "restart";
 //SCL                                       D1 //                           GPIO5
 //BUILTIN_LED                               D4 //10k Pull-up, BUILTIN_LED   GPIO2
 
+uint32_t              connectDelay                = 30000; //30s
+uint32_t              lastConnectAttempt          = 0; 
                                      
 #define SEND_DELAY                          5000  //prodleva mezi poslanim dat v ms
 #define SENDSTAT_DELAY                      60000 //poslani statistiky kazdou minutu
