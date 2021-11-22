@@ -139,6 +139,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+void ICACHE_RAM_ATTR pulseCountEvent();
+
 WiFiManager wifiManager;
 
 void setup() {

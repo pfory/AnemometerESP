@@ -11,7 +11,7 @@
 #include <timer.h>
 
 //SW name & version
-#define     VERSION                      "0.60"
+#define     VERSION                      "0.61"
 #define     SW_NAME                      "Anemometer"
 
 //#define timers
