@@ -191,9 +191,6 @@ void setup() {
 
   WiFi.printDiag(Serial);
 
-  wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
-  
- 
   if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
     DEBUG_PRINTLN("failed to connect and hit timeout");
     delay(3000);

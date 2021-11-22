@@ -107,8 +107,6 @@ uint32_t              lastConnectAttempt          = 0;
 //SCL                                       D1 //                           GPIO5
 //BUILTIN_LED                               D4 //10k Pull-up, BUILTIN_LED   GPIO2
 
-uint32_t              connectDelay                = 30000; //30s
-uint32_t              lastConnectAttempt          = 0; 
                                      
 #define SEND_DELAY                          5000  //prodleva mezi poslanim dat v ms
 #define SENDSTAT_DELAY                      60000 //poslani statistiky kazdou minutu
