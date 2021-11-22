@@ -24,7 +24,7 @@
 #define ota
 #ifdef ota
 #include <ArduinoOTA.h>
-#define HOSTNAMEOTA         SW_NAME VERSION
+#define HOSTNAMEOTA   SW_NAME VERSION
 #endif
 
 #ifdef serverHTTP

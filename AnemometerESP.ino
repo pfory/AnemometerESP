@@ -8,6 +8,7 @@ Naraz vetru - merit pocet pulzu kazdou sekundu a odeslat ten nejvyssi
 
 #include "Configuration.h"
 
+
 //#define serverHTTP
 #ifdef serverHTTP
 ESP8266WebServer server(80);
@@ -26,6 +27,8 @@ unsigned int          localPort             = 8888;  // local port to listen for
 time_t getNtpTime();
 #endif
 
+DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
+
 unsigned int volatile pulseCount            = 0;
 unsigned int pulseCountLast                 = 0;
 unsigned long lastSend                      = 0;
@@ -42,9 +45,6 @@ bool isDebugEnabled()
 #endif // verbose
   return false;
 }
-
-DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
-
 
 auto timer = timer_create_default(); // create a timer with default settings
 Timer<> default_timer; // save as above
@@ -143,18 +143,16 @@ void ICACHE_RAM_ATTR pulseCountEvent();
 
 WiFiManager wifiManager;
 
+
 void setup() {
   // put your setup code here, to run once:
   SERIAL_BEGIN;
   DEBUG_PRINT(F(SW_NAME));
   DEBUG_PRINT(F(" "));
   DEBUG_PRINTLN(F(VERSION));
-
-  pinMode(STATUS_LED, OUTPUT);
-
-  ticker.attach(1, tick);
-
+  
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+  ticker.attach(1, tick);
 
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
@@ -163,7 +161,10 @@ void setup() {
 
 
   if (drd.detectDoubleReset()) {
+    drd.stop();
     DEBUG_PRINTLN("Double reset detected, starting config portal...");
+    ticker.attach(0.2, tick);
+
     if (!wifiManager.startConfigPortal(HOSTNAMEOTA)) {
       DEBUG_PRINTLN("failed to connect and hit timeout");
       delay(3000);
@@ -173,6 +174,10 @@ void setup() {
     }
   }
   
+  pinMode(STATUS_LED, OUTPUT);
+  ticker.attach(1, tick);
+   
+ 
   rst_info *_reset_info = ESP.getResetInfoPtr();
   uint8_t _reset_reason = _reset_info->reason;
   DEBUG_PRINT("Boot-Mode: ");
@@ -191,8 +196,6 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  WiFi.printDiag(Serial);
-
   if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
     DEBUG_PRINTLN("failed to connect and hit timeout");
     delay(3000);
@@ -200,9 +203,10 @@ void setup() {
     ESP.reset();
     delay(5000);
   } 
-
+  
   sendNetInfoMQTT();
 
+  
 #ifdef serverHTTP
   server.on ( "/", handleRoot );
   server.begin();
@@ -249,20 +253,18 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(interruptPin), pulseCountEvent, RISING);
 
   //setup timers
-  timer.every(SEND_DELAY, sendDataHA);
-  timer.every(SENDSTAT_DELAY, sendStatisticHA);
+  timer.every(SEND_DELAY, sendDataMQTT);
+  timer.every(SENDSTAT_DELAY, sendStatisticMQTT);
 
   void * a;
-  sendStatisticHA(a);
+  sendStatisticMQTT(a);
   
-  DEBUG_PRINTLN(" Ready");
- 
   ticker.detach();
   //keep LED on
   digitalWrite(BUILTIN_LED, HIGH);
-
-  drd.stop();
   
+  drd.stop();
+
   DEBUG_PRINTLN(F("Setup end."));
 }
 
@@ -280,14 +282,16 @@ void loop() {
 
   reconnect();
   client.loop();
+
+  drd.loop();
 }
 
 
 
-bool sendDataHA(void *) {
-  noInterrupts();
+bool sendDataMQTT(void *) {
+  //noInterrupts();
   digitalWrite(BUILTIN_LED, LOW);
-  DEBUG_PRINTLN(F(" - I am sending data to HA"));
+  DEBUG_PRINTLN(F(" - I am sending data to MQTT"));
   
   SenderClass sender;
   float pc = (float)pulseCount/((millis() - lastSend) / 1000);
@@ -302,15 +306,15 @@ bool sendDataHA(void *) {
   pulseCount = 0;
   lastSend = millis();
   digitalWrite(BUILTIN_LED, HIGH);
-  interrupts();
+  //interrupts();
   return true;
 }
 
-bool sendStatisticHA(void *) {
-  noInterrupts();
+bool sendStatisticMQTT(void *) {
+  //noInterrupts();
   digitalWrite(BUILTIN_LED, LOW);
   printSystemTime();
-  DEBUG_PRINTLN(F(" - I am sending statistic to HA"));
+  DEBUG_PRINTLN(F(" - I am sending statistic to MQTT"));
 
   SenderClass sender;
   sender.add("VersionSW", VERSION);
@@ -321,21 +325,8 @@ bool sendStatisticHA(void *) {
   
   sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
   digitalWrite(BUILTIN_LED, HIGH);
-  interrupts();
+  //interrupts();
   return true;
-}
-
-void sendNetInfoMQTT() {
-  DEBUG_PRINTLN(F("Net info"));
-
-  SenderClass sender;
-  sender.add("IP",              WiFi.localIP().toString().c_str());
-  sender.add("MAC",             WiFi.macAddress());
-  
-  DEBUG_PRINTLN(F("Calling MQTT"));
-  
-  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
-  return;
 }
 
 
@@ -448,15 +439,31 @@ void pulseCountEvent() {
 }
 
 
+void sendNetInfoMQTT() {
+  digitalWrite(BUILTIN_LED, LOW);
+  //printSystemTime();
+  DEBUG_PRINTLN(F("Net info"));
+
+  SenderClass sender;
+  sender.add("IP",              WiFi.localIP().toString().c_str());
+  sender.add("MAC",             WiFi.macAddress());
+  
+  DEBUG_PRINTLN(F("Calling MQTT"));
+  
+  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
+  digitalWrite(BUILTIN_LED, HIGH);
+  return;
+}
+
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
+  if (!client.connected()) {
     if (lastConnectAttempt == 0 || lastConnectAttempt + connectDelay < millis()) {
       DEBUG_PRINT("Attempting MQTT connection...");
       // Attempt to connect
       if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
         DEBUG_PRINTLN("connected");
-        client.subscribe((String(mqtt_base) + "/#").c_str());
+        client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str());
       } else {
         lastConnectAttempt = millis();
         DEBUG_PRINT("failed, rc=");
@@ -465,3 +472,4 @@ void reconnect() {
     }
   }
 }
+
