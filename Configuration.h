@@ -11,7 +11,7 @@
 #include <timer.h>
 
 //SW name & version
-#define     VERSION                      "0.61"
+#define     VERSION                      "0.62"
 #define     SW_NAME                      "Anemometer"
 
 //#define timers
@@ -91,6 +91,9 @@ static const char* const      mqtt_base                      = "/home/Anemometer
 // static const char* const      static_gw                      = "192.168.1.1";
 // static const char* const      static_sn                      = "255.255.255.0";
 static const char* const      mqtt_topic_restart             = "restart";
+static const char* const      mqtt_topic_netinfo             = "netinfo";
+static const char* const      mqtt_config_portal             = "config";
+static const char* const      mqtt_config_portal_stop        = "disconfig";
 
 uint32_t              connectDelay                = 30000; //30s
 uint32_t              lastConnectAttempt          = 0;  
@@ -110,5 +113,6 @@ uint32_t              lastConnectAttempt          = 0;
                                      
 #define SEND_DELAY                          5000  //prodleva mezi poslanim dat v ms
 #define SENDSTAT_DELAY                      60000 //poslani statistiky kazdou minutu
+#define CONNECT_DELAY                       5000 //ms
 
 #endif

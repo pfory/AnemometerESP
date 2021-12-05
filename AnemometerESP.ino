@@ -132,16 +132,25 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (strcmp(topic, (String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str())==0) {
     DEBUG_PRINT("RESTART");
     ESP.restart();
+  } else if (strcmp(topic, (String(mqtt_base) + "/" + String(mqtt_topic_netinfo)).c_str())==0) {
+    sendNetInfoMQTT();
+  } else if (strcmp(topic, (String(mqtt_base) + "/" + String(mqtt_config_portal)).c_str())==0) {
+    startConfigPortal();
+  } else if (strcmp(topic, (String(mqtt_base) + "/" + String(mqtt_config_portal_stop)).c_str())==0) {
+    stopConfigPortal();
   }
-  
 }
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-void ICACHE_RAM_ATTR pulseCountEvent();
-
 WiFiManager wifiManager;
+
+void ICACHE_RAM_ATTR pulseCountEvent() {
+  digitalWrite(BUILTIN_LED, LOW);
+  pulseCount++;
+  digitalWrite(BUILTIN_LED, HIGH);
+}
 
 
 void setup() {
@@ -158,19 +167,14 @@ void setup() {
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT);
   wifiManager.setConnectTimeout(CONNECT_TIMEOUT);
-
+  wifiManager.setBreakAfterConfig(true);
+  wifiManager.setWiFiAutoReconnect(true);
 
   if (drd.detectDoubleReset()) {
     drd.stop();
     DEBUG_PRINTLN("Double reset detected, starting config portal...");
-    ticker.attach(0.2, tick);
-
     if (!wifiManager.startConfigPortal(HOSTNAMEOTA)) {
-      DEBUG_PRINTLN("failed to connect and hit timeout");
-      delay(3000);
-      //reset and try again, or maybe put it to deep sleep
-      ESP.reset();
-      delay(5000);
+      DEBUG_PRINTLN("Failed to connect. Use ESP without WiFi.");
     }
   }
   
@@ -197,15 +201,12 @@ void setup() {
   client.setCallback(callback);
 
   if (!wifiManager.autoConnect(AUTOCONNECTNAME, AUTOCONNECTPWD)) { 
-    DEBUG_PRINTLN("failed to connect and hit timeout");
-    delay(3000);
-    //reset and try again, or maybe put it to deep sleep
-    ESP.reset();
-    delay(5000);
-  } 
+    DEBUG_PRINTLN("Autoconnect failed connect to WiFi. Use ESP without WiFi.");
+  }   
+
+  WiFi.printDiag(Serial);
   
   sendNetInfoMQTT();
-
   
 #ifdef serverHTTP
   server.on ( "/", handleRoot );
@@ -255,9 +256,11 @@ void setup() {
   //setup timers
   timer.every(SEND_DELAY, sendDataMQTT);
   timer.every(SENDSTAT_DELAY, sendStatisticMQTT);
+  timer.every(CONNECT_DELAY, reconnect);
 
   void * a;
   sendStatisticMQTT(a);
+  reconnect(a);
   
   ticker.detach();
   //keep LED on
@@ -265,10 +268,8 @@ void setup() {
   
   drd.stop();
 
-  DEBUG_PRINTLN(F("Setup end."));
+  DEBUG_PRINTLN(F("SETUP END......................."));
 }
-
-
 
 void loop() {
   timer.tick(); // tick the timer
@@ -280,13 +281,20 @@ void loop() {
   ArduinoOTA.handle();
 #endif
 
-  reconnect();
   client.loop();
-
-  drd.loop();
+  wifiManager.process();
 }
 
+void startConfigPortal(void) {
+  DEBUG_PRINTLN("START config portal");
+  wifiManager.setConfigPortalBlocking(false);
+  wifiManager.startConfigPortal(HOSTNAMEOTA);
+}
 
+void stopConfigPortal(void) {
+  DEBUG_PRINTLN("STOP config portal");
+  wifiManager.stopConfigPortal();
+}
 
 bool sendDataMQTT(void *) {
   //noInterrupts();
@@ -432,21 +440,14 @@ void printSystemTime(){
 #endif
 }
 
-void pulseCountEvent() {
-  digitalWrite(BUILTIN_LED, LOW);
-  pulseCount++;
-  digitalWrite(BUILTIN_LED, HIGH);
-}
-
-
 void sendNetInfoMQTT() {
   digitalWrite(BUILTIN_LED, LOW);
-  //printSystemTime();
   DEBUG_PRINTLN(F("Net info"));
 
   SenderClass sender;
   sender.add("IP",              WiFi.localIP().toString().c_str());
   sender.add("MAC",             WiFi.macAddress());
+  sender.add("AP name",         WiFi.SSID());
   
   DEBUG_PRINTLN(F("Calling MQTT"));
   
@@ -455,21 +456,17 @@ void sendNetInfoMQTT() {
   return;
 }
 
-void reconnect() {
-  // Loop until we're reconnected
+bool reconnect(void *) {
   if (!client.connected()) {
-    if (lastConnectAttempt == 0 || lastConnectAttempt + connectDelay < millis()) {
-      DEBUG_PRINT("Attempting MQTT connection...");
-      // Attempt to connect
-      if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
-        DEBUG_PRINTLN("connected");
-        client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str());
-      } else {
-        lastConnectAttempt = millis();
-        DEBUG_PRINT("failed, rc=");
-        DEBUG_PRINTLN(client.state());
-      }
+    DEBUG_PRINT("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
+      client.subscribe((String(mqtt_base) + "/#").c_str());
+      DEBUG_PRINTLN("connected");
+    } else {
+      DEBUG_PRINT("failed, rc=");
+      DEBUG_PRINTLN(client.state());
     }
   }
+  return true;
 }
-
