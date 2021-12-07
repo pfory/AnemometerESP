@@ -49,10 +49,6 @@ bool isDebugEnabled()
 auto timer = timer_create_default(); // create a timer with default settings
 Timer<> default_timer; // save as above
 
-const byte interruptPin = D2;
-const byte analogPin    = A0;
-
-
 #ifdef serverHTTP
 void handleRoot() {
 	char temp[600];
@@ -178,7 +174,7 @@ void setup() {
     }
   }
   
-  pinMode(STATUS_LED, OUTPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
   ticker.attach(1, tick);
    
  
@@ -206,8 +202,6 @@ void setup() {
 
   WiFi.printDiag(Serial);
   
-  sendNetInfoMQTT();
-  
 #ifdef serverHTTP
   server.on ( "/", handleRoot );
   server.begin();
@@ -221,7 +215,7 @@ void setup() {
   DEBUG_PRINTLN(EthernetUdp.localPort());
   DEBUG_PRINTLN("waiting for sync");
   setSyncProvider(getNtpTime);
-  setSyncInterval(300);
+  setSyncInterval(3600);
   
   printSystemTime();
 #endif
@@ -259,8 +253,9 @@ void setup() {
   timer.every(CONNECT_DELAY, reconnect);
 
   void * a;
-  sendStatisticMQTT(a);
   reconnect(a);
+  sendNetInfoMQTT();
+  sendStatisticMQTT(a);
   
   ticker.detach();
   //keep LED on
@@ -295,48 +290,6 @@ void stopConfigPortal(void) {
   DEBUG_PRINTLN("STOP config portal");
   wifiManager.stopConfigPortal();
 }
-
-bool sendDataMQTT(void *) {
-  //noInterrupts();
-  digitalWrite(BUILTIN_LED, LOW);
-  DEBUG_PRINTLN(F(" - I am sending data to MQTT"));
-  
-  SenderClass sender;
-  float pc = (float)pulseCount/((millis() - lastSend) / 1000);
-  if (abs(pc - pulseCountLast) < PULSECOUNTDIF) {
-    sender.add("Rychlost", pc);
-  }
-  sender.add("Smer", analogRead(analogPin));
-  DEBUG_PRINTLN(F("Calling MQTT"));
-
-  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
-  pulseCountLast = pc;
-  pulseCount = 0;
-  lastSend = millis();
-  digitalWrite(BUILTIN_LED, HIGH);
-  //interrupts();
-  return true;
-}
-
-bool sendStatisticMQTT(void *) {
-  //noInterrupts();
-  digitalWrite(BUILTIN_LED, LOW);
-  printSystemTime();
-  DEBUG_PRINTLN(F(" - I am sending statistic to MQTT"));
-
-  SenderClass sender;
-  sender.add("VersionSW", VERSION);
-  //sender.add("Napeti",  ESP.getVcc());
-  sender.add("HeartBeat", heartBeat++);
-  sender.add("RSSI", WiFi.RSSI());
-  DEBUG_PRINTLN(F("Calling MQTT"));
-  
-  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
-  digitalWrite(BUILTIN_LED, HIGH);
-  //interrupts();
-  return true;
-}
-
 
 #ifdef time
 /*-------- NTP code ----------*/
@@ -440,18 +393,53 @@ void printSystemTime(){
 #endif
 }
 
+bool sendDataMQTT(void *) {
+  //noInterrupts();
+  digitalWrite(BUILTIN_LED, LOW);
+  DEBUG_PRINTLN(F(" - I am sending data to MQTT"));
+  
+  float pc = (float)pulseCount/((millis() - lastSend) / 1000);
+  if (abs(pc - pulseCountLast) < PULSECOUNTDIF) {
+    client.publish((String(mqtt_base) + "/Rychlost").c_str(), String(pc).c_str());
+    //sender.add("Rychlost", pc);
+  }
+  //sender.add("Smer", analogRead(analogPin));
+  client.publish((String(mqtt_base) + "/Smer").c_str(), String(analogRead(analogPin)).c_str());
+
+  DEBUG_PRINTLN(F("Calling MQTT"));
+
+  //sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
+  pulseCountLast = pc;
+  pulseCount = 0;
+  lastSend = millis();
+  digitalWrite(BUILTIN_LED, HIGH);
+  return true;
+}
+
+
+bool sendStatisticMQTT(void *) {
+  digitalWrite(BUILTIN_LED, LOW);
+  DEBUG_PRINTLN(F("Statistic"));
+  
+  client.publish((String(mqtt_base) + "/VersionSW").c_str(), VERSION);
+  //client.publish((String(mqtt_base) + "/Napeti").c_str(), String(ESP.getVcc()).c_str()); //nejde na ADC je vystup z cidla smeru vetru
+  client.publish((String(mqtt_base) + "/HeartBeat").c_str(), String(heartBeat++).c_str());
+  if (heartBeat % 10 == 0) {
+    client.publish((String(mqtt_base) + "/RSSI").c_str(), String(WiFi.RSSI()).c_str());
+  }
+
+  digitalWrite(BUILTIN_LED, HIGH);
+  return true;
+}
+
 void sendNetInfoMQTT() {
   digitalWrite(BUILTIN_LED, LOW);
   DEBUG_PRINTLN(F("Net info"));
 
-  SenderClass sender;
-  sender.add("IP",              WiFi.localIP().toString().c_str());
-  sender.add("MAC",             WiFi.macAddress());
-  sender.add("AP name",         WiFi.SSID());
-  
-  DEBUG_PRINTLN(F("Calling MQTT"));
-  
-  sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
+  client.publish((String(mqtt_base) + "/IP").c_str(), WiFi.localIP().toString().c_str());
+  client.publish((String(mqtt_base) + "/MAC").c_str(), String(WiFi.macAddress()).c_str());
+  client.publish((String(mqtt_base) + "/AP name").c_str(), String(WiFi.SSID()).c_str());
+
   digitalWrite(BUILTIN_LED, HIGH);
   return;
 }
@@ -462,6 +450,7 @@ bool reconnect(void *) {
     // Attempt to connect
     if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
       client.subscribe((String(mqtt_base) + "/#").c_str());
+      client.publish((String(mqtt_base) + "/connected").c_str(), "");
       DEBUG_PRINTLN("connected");
     } else {
       DEBUG_PRINT("failed, rc=");
