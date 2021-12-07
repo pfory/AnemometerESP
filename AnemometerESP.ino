@@ -168,7 +168,7 @@ bool reconnect(void *) {
   if (!client.connected()) {
     DEBUG_PRINT("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(mqtt_base, mqtt_username, mqtt_key)) {
+    if (client.connect(mqtt_base, mqtt_username, mqtt_key, (String(mqtt_base) + "/LWT").c_str(), 2, true, "Dead", false)) {
       client.subscribe((String(mqtt_base) + "/#").c_str());
       client.publish((String(mqtt_base) + "/connected").c_str(), "");
       DEBUG_PRINTLN("connected");
