@@ -19,13 +19,6 @@ unsigned int pulseCountLast                 = 0;
 unsigned long lastSend                      = 0;
 
 
-bool isDebugEnabled() {
-#ifdef verbose
-  return true;
-#endif // verbose
-  return false;
-}
-
 #ifdef serverHTTP
 void handleRoot() {
 	char temp[600];
@@ -108,10 +101,12 @@ void setup() {
   pinMode(interruptPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), pulseCountEvent, RISING);
 
+#ifdef timers
   //setup timers
   timer.every(SEND_DELAY, sendDataMQTT);
   timer.every(SENDSTAT_DELAY, sendStatisticMQTT);
   timer.every(CONNECT_DELAY, reconnect);
+#endif
 
   void * a;
   reconnect(a);
@@ -142,21 +137,15 @@ void loop() {
 }
 
 bool sendDataMQTT(void *) {
-  //noInterrupts();
   digitalWrite(BUILTIN_LED, LOW);
-  DEBUG_PRINTLN(F(" - I am sending data to MQTT"));
+  DEBUG_PRINTLN(F("Data"));
   
   float pc = (float)pulseCount/((millis() - lastSend) / 1000);
   if (abs(pc - pulseCountLast) < PULSECOUNTDIF) {
     client.publish((String(mqtt_base) + "/Rychlost").c_str(), String(pc).c_str());
-    //sender.add("Rychlost", pc);
   }
-  //sender.add("Smer", analogRead(analogPin));
   client.publish((String(mqtt_base) + "/Smer").c_str(), String(analogRead(analogPin)).c_str());
 
-  DEBUG_PRINTLN(F("Calling MQTT"));
-
-  //sender.sendMQTT(mqtt_server, mqtt_port, mqtt_username, mqtt_key, mqtt_base);
   pulseCountLast = pc;
   pulseCount = 0;
   lastSend = millis();
@@ -168,9 +157,12 @@ bool reconnect(void *) {
   if (!client.connected()) {
     DEBUG_PRINT("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(mqtt_base, mqtt_username, mqtt_key, (String(mqtt_base) + "/LWT").c_str(), 2, true, "Dead", false)) {
-      client.subscribe((String(mqtt_base) + "/#").c_str());
-      client.publish((String(mqtt_base) + "/connected").c_str(), "");
+    if (client.connect(mqtt_base, mqtt_username, mqtt_key, (String(mqtt_base) + "/LWT").c_str(), 2, true, "offline", true)) {
+      client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_restart)).c_str());
+      client.subscribe((String(mqtt_base) + "/" + String(mqtt_topic_netinfo)).c_str());
+      client.subscribe((String(mqtt_base) + "/" + String(mqtt_config_portal)).c_str());
+      client.subscribe((String(mqtt_base) + "/" + String(mqtt_config_portal_stop)).c_str());
+      client.publish((String(mqtt_base) + "/LWT").c_str(), "online", true);
       DEBUG_PRINTLN("connected");
     } else {
       DEBUG_PRINT("failed, rc=");

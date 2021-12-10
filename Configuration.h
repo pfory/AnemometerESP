@@ -1,35 +1,16 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
-#include <Ticker.h>
-#include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
-#include <DoubleResetDetector.h>  //https://github.com/khoih-prog/ESP_DoubleResetDetector
-#include <PubSubClient.h>
-#include <Wire.h>
-#include <timer.h>
+#include <ArduinoJson.h>
 
 //SW name & version
-#define     VERSION                      "0.81"
+#define     VERSION                      "0.82"
 #define     SW_NAME                      "Anemometer"
 
-//#define timers
+#define timers
 #define ota
 #define verbose
 
-
-#define CFGFILE "/config.json"
-
-
-#ifdef serverHTTP
-#include <ESP8266WebServer.h>
-#endif
-
-#ifdef time
-#include <TimeLib.h>
-#include <Timezone.h>
-#endif
 /*
 --------------------------------------------------------------------------------------------------------------------------
 
@@ -55,6 +36,7 @@ static const char* const      mqtt_config_portal_stop        = "disconfig";
 
 
 #define PULSECOUNTDIF                       40 //10m/s
+#define BUILTIN_LED                         1
 
 const byte interruptPin = D2;
 const byte analogPin    = A0;
