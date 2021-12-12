@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 
 //SW name & version
-#define     VERSION                      "0.82"
+#define     VERSION                      "0.83"
 #define     SW_NAME                      "Anemometer"
 
 #define timers
@@ -22,7 +22,7 @@ ESP8266 Wemos D1
 */
 
 #define CONFIG_PORTAL_TIMEOUT 60 //jak dlouho zustane v rezimu AP nez se cip resetuje
-#define CONNECT_TIMEOUT 5 //jak dlouho se ceka na spojeni nez se aktivuje config portal
+#define CONNECT_TIMEOUT 120 //jak dlouho se ceka na spojeni nez se aktivuje config portal
 
 static const char* const      mqtt_server                    = "192.168.1.56";
 static const uint16_t         mqtt_port                      = 1883;
