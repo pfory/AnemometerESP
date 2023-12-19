@@ -30,47 +30,45 @@ void handleRoot() {
   // DEBUG_PRINT(second());
   printSystemTime();
   DEBUG_PRINTLN(" Client request");
-  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   
-	// snprintf ( temp, 400,
-      // "<html>\
-        // <head>\
-          // <meta charset='UTF-8'>\
-        // </head>\
-        // <body>\
-          // T2899BDCF02000076,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%s%d.%02d<br />\
-          // Humidity,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%d.00<br />\
-          // Press,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%d.00<br />\
-          // DewPoint,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%s%d.%02d<br />\
-        // </body>\
-      // </html>",
-      // year(), month(), day(), hour(), minute(), second(),
-      // temperature<0 && temperature>-1 ? "-":"",
-      // (int)temperature, 
-      // abs((temperature - (int)temperature) * 100),
-      // year(), month(), day(), hour(), minute(), second(),
-      // (int)humidity,
-      // year(), month(), day(), hour(), minute(), second(),
-      // (int)pressure,
-      // year(), month(), day(), hour(), minute(), second(),
-      // dewPoint<0 && dewPoint>-1 ? "-":"",
-      // (int)dewPoint, 
-      // abs((dewPoint - (int)dewPoint) * 100)
-	// );
+	snprintf ( temp, 400,
+      "<html>\
+        <head>\
+          <meta charset='UTF-8'>\
+        </head>\
+        <body>\
+          T2899BDCF02000076,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%s%d.%02d<br />\
+          Humidity,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%d.00<br />\
+          Press,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%d.00<br />\
+          DewPoint,%4d-%02d-%02dT%02d:%02d:%02d.000000Z,%s%d.%02d<br />\
+        </body>\
+      </html>",
+      year(), month(), day(), hour(), minute(), second(),
+      temperature<0 && temperature>-1 ? "-":"",
+      (int)temperature, 
+      abs((temperature - (int)temperature) * 100),
+      year(), month(), day(), hour(), minute(), second(),
+      (int)humidity,
+      year(), month(), day(), hour(), minute(), second(),
+      (int)pressure,
+      year(), month(), day(), hour(), minute(), second(),
+      dewPoint<0 && dewPoint>-1 ? "-":"",
+      (int)dewPoint, 
+      abs((dewPoint - (int)dewPoint) * 100)
+	);
 	server.send ( 200, "text/html", temp );
-  digitalWrite(BUILTIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 #endif
 
 //MQTT callback
 void callback(char* topic, byte* payload, unsigned int length) {
-  char * pEnd;
-  long int valL;
   String val =  String();
   DEBUG_PRINT("Message arrived [");
   DEBUG_PRINT(topic);
   DEBUG_PRINT("] ");
-  for (int i=0;i<length;i++) {
+  for (unsigned int i=0;i<length;i++) {
     DEBUG_PRINT((char)payload[i]);
     val += (char)payload[i];
   }
@@ -88,14 +86,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-void ICACHE_RAM_ATTR pulseCountEvent() {
-  digitalWrite(BUILTIN_LED, LOW);
+void IRAM_ATTR pulseCountEvent() {
+  digitalWrite(LED_BUILTIN, LOW);
   pulseCount++;
-  digitalWrite(BUILTIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void setup() {
   preSetup();
+  client.setCallback(callback);
 
   //v klidu +3V, pulz vstup stahuje k zemi pres pulldown
   pinMode(interruptPin, INPUT_PULLUP);
@@ -104,18 +103,17 @@ void setup() {
 #ifdef timers
   //setup timers
   timer.every(SEND_DELAY, sendDataMQTT);
-  timer.every(SENDSTAT_DELAY, sendStatisticMQTT);
   timer.every(CONNECT_DELAY, reconnect);
 #endif
 
-  void * a;
+  void * a = 0;
   reconnect(a);
   sendNetInfoMQTT();
   sendStatisticMQTT(a);
   
   ticker.detach();
   //keep LED on
-  digitalWrite(BUILTIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   
   drd.stop();
 
@@ -137,7 +135,7 @@ void loop() {
 }
 
 bool sendDataMQTT(void *) {
-  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   DEBUG_PRINTLN(F("Data"));
   
   float pc = (float)pulseCount/((millis() - lastSend) / 1000);
@@ -149,7 +147,7 @@ bool sendDataMQTT(void *) {
   pulseCountLast = pc;
   pulseCount = 0;
   lastSend = millis();
-  digitalWrite(BUILTIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   return true;
 }
 
