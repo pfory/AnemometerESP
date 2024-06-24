@@ -87,14 +87,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void IRAM_ATTR pulseCountEvent() {
-  digitalWrite(LED_BUILTIN, LOW);
+//  digitalWrite(LED_BUILTIN, LOW);
   pulseCount++;
-  digitalWrite(LED_BUILTIN, HIGH);
+//  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void setup() {
   preSetup();
-  client.setCallback(callback);
+  //client.setCallback(callback);
 
   //v klidu +3V, pulz vstup stahuje k zemi pres pulldown
   pinMode(interruptPin, INPUT_PULLUP);
@@ -106,18 +106,9 @@ void setup() {
   timer.every(CONNECT_DELAY, reconnect);
 #endif
 
-  void * a = 0;
+  void * a=0;
   reconnect(a);
-  sendNetInfoMQTT();
-  sendStatisticMQTT(a);
-  
-  ticker.detach();
-  //keep LED on
-  digitalWrite(LED_BUILTIN, HIGH);
-  
-  drd.stop();
-
-  DEBUG_PRINTLN(F("SETUP END......................."));
+  postSetup();
 }
 
 void loop() {

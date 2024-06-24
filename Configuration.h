@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 
 //SW name & version
-#define     VERSION                      "0.84"
+#define     VERSION                      "0.86"
 #define     SW_NAME                      "Anemometer"
 
 #define timers
